@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
-import { events, topics, votes, users } from "@/db/schema";
+import { events, topics, votes, users, resources } from "@/db/schema";
 import { eq, desc, sql } from "drizzle-orm";
 
 export async function GET() {
@@ -43,11 +43,30 @@ export async function GET() {
 
   const votedTopicIds = new Set(userVotes.map((v) => v.topicId));
 
+  // Get resources for this event
+  const eventResources = await db
+    .select({
+      id: resources.id,
+      type: resources.type,
+      name: resources.name,
+      url: resources.url,
+      mimeType: resources.mimeType,
+      fileSize: resources.fileSize,
+      uploadedBy: resources.uploadedBy,
+      uploaderName: users.name,
+      createdAt: resources.createdAt,
+    })
+    .from(resources)
+    .leftJoin(users, eq(resources.uploadedBy, users.id))
+    .where(eq(resources.eventId, event.id))
+    .orderBy(desc(resources.createdAt));
+
   return NextResponse.json({
     event,
     topics: eventTopics.map((t) => ({
       ...t,
       hasVoted: votedTopicIds.has(t.id),
     })),
+    resources: eventResources,
   });
 }

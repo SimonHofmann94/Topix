@@ -45,15 +45,34 @@ export const votes = sqliteTable(
   ]
 );
 
+export const resources = sqliteTable("resources", {
+  id: text("id").primaryKey(),
+  eventId: text("event_id").notNull().references(() => events.id, { onDelete: "cascade" }),
+  uploadedBy: text("uploaded_by").notNull().references(() => users.id),
+  type: text("type", { enum: ["file", "link"] }).notNull(),
+  name: text("name").notNull(),
+  url: text("url").notNull(),
+  mimeType: text("mime_type"),
+  fileSize: integer("file_size"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   topics: many(topics),
   votes: many(votes),
+  resources: many(resources),
 }));
 
 export const eventsRelations = relations(events, ({ one, many }) => ({
   creator: one(users, { fields: [events.createdBy], references: [users.id] }),
   topics: many(topics),
+  resources: many(resources),
+}));
+
+export const resourcesRelations = relations(resources, ({ one }) => ({
+  event: one(events, { fields: [resources.eventId], references: [events.id] }),
+  uploader: one(users, { fields: [resources.uploadedBy], references: [users.id] }),
 }));
 
 export const topicsRelations = relations(topics, ({ one, many }) => ({

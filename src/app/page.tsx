@@ -7,8 +7,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ProposeTopic } from "@/components/propose-topic";
+import { AddResource } from "@/components/add-resource";
+import { Ablage } from "@/components/ablage";
 import { toast } from "sonner";
 import Link from "next/link";
+
+type Resource = {
+  id: string;
+  type: string;
+  name: string;
+  url: string;
+  mimeType: string | null;
+  fileSize: number | null;
+  uploadedBy: string;
+  uploaderName: string;
+  createdAt: string;
+};
 
 type Topic = {
   id: string;
@@ -35,6 +49,7 @@ export default function Home() {
   const { data: session } = useSession();
   const [event, setEvent] = useState<Event | null>(null);
   const [topics, setTopics] = useState<Topic[]>([]);
+  const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
@@ -42,6 +57,7 @@ export default function Home() {
     const data = await res.json();
     setEvent(data.event);
     setTopics(data.topics || []);
+    setResources(data.resources || []);
     setLoading(false);
   }, []);
 
@@ -60,6 +76,14 @@ export default function Home() {
     const res = await fetch(`/api/topics/${topicId}`, { method: "DELETE" });
     if (res.ok) {
       toast("Thema entfernt");
+      fetchData();
+    }
+  }
+
+  async function handleDeleteResource(resourceId: string) {
+    const res = await fetch(`/api/resources/${resourceId}`, { method: "DELETE" });
+    if (res.ok) {
+      toast("Ressource entfernt");
       fetchData();
     }
   }
@@ -142,8 +166,15 @@ export default function Home() {
               )}
             </div>
 
-            {/* Propose Topic */}
-            <ProposeTopic eventId={event.id} onCreated={fetchData} />
+            {/* Actions */}
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <ProposeTopic eventId={event.id} onCreated={fetchData} />
+              </div>
+              <div className="flex-1">
+                <AddResource eventId={event.id} onCreated={fetchData} />
+              </div>
+            </div>
 
             {/* Agenda */}
             <div className="mt-6 space-y-3">
@@ -227,6 +258,14 @@ export default function Home() {
                 ))
               )}
             </div>
+
+            {/* Ablage */}
+            <Ablage
+              resources={resources}
+              currentUserId={session?.user?.id || ""}
+              isAdmin={isAdmin}
+              onDelete={handleDeleteResource}
+            />
           </>
         )}
       </main>
